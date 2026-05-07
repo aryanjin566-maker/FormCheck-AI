@@ -1,0 +1,6 @@
+{
+  "name": "FormCheck AI",
+  "description": "AI-powered fitness assistant that analyzes your exercise videos to provide real-time form feedback, rep counts, and performance tips.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

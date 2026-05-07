@@ -1,0 +1,80 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitive Definition
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Phase 4: Validation Blueprints
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'createdAt', 'updatedAt']) &&
+             data.keys().size() <= 6 && // email, displayName, photoURL, createdAt, updatedAt
+             data.email is string && data.email.size() <= 256 &&
+             (data.get('displayName', null) == null || (data.displayName is string && data.displayName.size() <= 128)) &&
+             (data.get('photoURL', null) == null || (data.photoURL is string && data.photoURL.size() <= 1024)) &&
+             data.createdAt == request.time &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidAnalysis(data) {
+      return data.keys().hasAll(['exerciseName', 'count', 'isCorrect', 'score', 'feedback', 'tips', 'createdAt']) &&
+             data.exerciseName is string && data.exerciseName.size() <= 128 &&
+             data.count is string && data.count.size() <= 64 &&
+             data.isCorrect is bool &&
+             data.score is number && data.score >= 0 && data.score <= 100 &&
+             data.feedback is string && data.feedback.size() <= 2000 &&
+             data.tips is list && data.tips.size() <= 10 &&
+             (data.get('correctFormExplanation', null) == null || (data.correctFormExplanation is string && data.correctFormExplanation.size() <= 2000)) &&
+             (data.get('videoUrl', null) == null || (data.videoUrl is string && data.videoUrl.size() <= 2048)) &&
+             data.createdAt == request.time;
+    }
+
+    // Rules for User Profile
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      // No listing users to prevent PII leaks
+      allow list: if false; 
+      
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && 
+                      incoming().updatedAt == request.time &&
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().email == existing().email &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt']);
+    }
+
+    // Rules for Analysis Records (Subcollection of User)
+    match /users/{userId}/analyses/{analysisId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      
+      allow create: if isOwner(userId) && isValidAnalysis(incoming());
+      // Analyses are immutable once created in this app's current logic
+      allow update: if false;
+      allow delete: if isOwner(userId);
+    }
+  }
+}

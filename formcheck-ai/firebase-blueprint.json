@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Public and private user profile data",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "photoURL": { "type": "string" },
+        "currentStreak": { "type": "number" },
+        "lastCheckInDate": { "type": "string" },
+        "totalCheckIns": { "type": "number" },
+        "totalReps": { "type": "number" },
+        "uniqueExercises": { 
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "leaderboardScore": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "createdAt", "updatedAt"]
+    },
+    "CheckIn": {
+      "title": "Daily Check-In",
+      "description": "User daily exercise completion mark",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "completed", "createdAt"]
+    },
+    "ExerciseAnalysis": {
+      "title": "Exercise Analysis Record",
+      "description": "The result of an exercise video analysis",
+      "type": "object",
+      "properties": {
+        "exerciseName": { "type": "string" },
+        "count": { "type": "string" },
+        "isCorrect": { "type": "boolean" },
+        "score": { "type": "number" },
+        "feedback": { "type": "string" },
+        "tips": { 
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "correctFormExplanation": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["exerciseName", "count", "isCorrect", "score", "feedback", "tips", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Individual user profile documents"
+    },
+    "/users/{userId}/analyses/{analysisId}": {
+      "schema": "ExerciseAnalysis",
+      "description": "Historical analysis records for a specific user"
+    },
+    "/users/{userId}/checkins/{checkInId}": {
+      "schema": "CheckIn",
+      "description": "Daily exercise completion logs"
+    }
+  }
+}
